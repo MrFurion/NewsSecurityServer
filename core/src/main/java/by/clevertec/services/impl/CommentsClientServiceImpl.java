@@ -3,17 +3,14 @@ package by.clevertec.services.impl;
 import by.clevertec.dto.request.CommentDtoRequest;
 import by.clevertec.dto.request.CommentDtoRequestUpdate;
 import by.clevertec.dto.response.CommentsDtoResponse;
-import by.clevertec.exception.CommentNotFoundException;
 import by.clevertec.exception.NewsNotFoundException;
 import by.clevertec.services.CommentsClientService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.ParameterizedTypeReference;
-import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.RestTemplate;
@@ -45,8 +42,6 @@ public class CommentsClientServiceImpl implements CommentsClientService {
             return response.getBody();
         } catch (HttpClientErrorException e) {
             String errorMessage = String.format("Error %d: %s", e.getStatusCode().value(), e.getStatusText());
-
-            System.out.println(errorMessage);
             throw new RuntimeException(errorMessage, e);
         }
     }
@@ -60,7 +55,8 @@ public class CommentsClientServiceImpl implements CommentsClientService {
         requestParams.put("query", searchElement);
 
         ResponseEntity<List<CommentsDtoResponse>> response = restTemplate.exchange(url, HttpMethod.POST,
-                new HttpEntity<>(requestParams, getJwtToken().getHeaders()), new ParameterizedTypeReference<>() {});
+                new HttpEntity<>(requestParams, getJwtToken().getHeaders()), new ParameterizedTypeReference<>() {
+                });
         return response.getBody() != null ? response.getBody() : new ArrayList<>();
     }
 
@@ -83,8 +79,9 @@ public class CommentsClientServiceImpl implements CommentsClientService {
         try {
             ResponseEntity<CommentsDtoResponse> response = restTemplate.exchange(url, HttpMethod.PUT, entity, CommentsDtoResponse.class);
             return response.getBody();
-        } catch (HttpClientErrorException.NotFound e){
-            throw new CommentNotFoundException();
+        } catch (HttpClientErrorException e) {
+            String errorMessage = String.format("Error %d: %s", e.getStatusCode().value(), e.getStatusText());
+            throw new RuntimeException(errorMessage, e);
         }
     }
 
@@ -94,8 +91,9 @@ public class CommentsClientServiceImpl implements CommentsClientService {
         HttpEntity<Void> entity = new HttpEntity<>(getJwtToken().getHeaders());
         try {
             restTemplate.exchange(url, HttpMethod.DELETE, entity, Void.class);
-        } catch (HttpClientErrorException.NotFound e) {
-            throw new CommentNotFoundException();
+        } catch (HttpClientErrorException e) {
+            String errorMessage = String.format("Error %d: %s", e.getStatusCode().value(), e.getStatusText());
+            throw new RuntimeException(errorMessage, e);
         }
     }
 }
